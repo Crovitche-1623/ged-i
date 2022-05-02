@@ -4,12 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Form\EcmFormType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\DateType;
-use Symfony\Component\Form\Extension\Core\Type\FileType;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -24,36 +20,7 @@ class IndexController extends AbstractController
         HttpClientInterface $httpClient
     ): Response
     {
-        $form = $this->createFormBuilder()
-            ->add('firstName', TextType::class, [
-                'attr' => [
-                    'autofocus' => true
-                ],
-                'label' => 'Prénom',
-            ])
-            ->add('lastName', TextType::class, [
-                'label' => 'Nom'
-            ])
-            ->add('isMale', ChoiceType::class, [
-                'choices' => [
-                    'Monsieur' => true,
-                    'Madame' => false
-                ],
-                'expanded' => true,
-                'label' => 'Sexe',
-                'multiple' => false
-            ])
-            ->add('birthDate', DateType::class, [
-                'label' => 'Date de naissance'
-            ])
-            ->add('cv', FileType::class, [
-                'label' => 'Curriculum Vitae'
-            ])
-            ->add('save', SubmitType::class, [
-                'label' => 'Envoyer votre candidature'
-            ])
-            ->getForm()
-        ;
+        $form = $this->createForm(EcmFormType::class);
 
         $form->handleRequest($request);
 

@@ -73,7 +73,7 @@
       <div class="row justify-content-center">
         <div class="col-6">
           {% block body %}
-            <h1 class="mb-4">Envoyer votre candidature</h1>
+            <h1 class="mb-4">Envoyer un fichier à Doc.ECM</h1>
             {{ form_start(form) }}
             {{ form_row(form.firstName) }}
             {{ form_row(form.lastName) }}
@@ -102,7 +102,8 @@
                 </div>
               {% endfor %}
             </div>
-            {{ form_row(form.cv) }}
+            {{ form_row(form.fileType) }}
+            {{ form_row(form.file) }}
             {{ form_row(form.save) }}
             {{ form_end(form, {'render_rest': false}) }}
           {% endblock %}
