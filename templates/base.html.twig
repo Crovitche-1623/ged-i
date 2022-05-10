@@ -75,6 +75,7 @@
           {% block body %}
             <h1 class="mb-4">Envoyer un fichier à Doc.ECM</h1>
             {{ form_start(form) }}
+            {#
             {{ form_row(form.firstName) }}
             {{ form_row(form.lastName) }}
             {{ form_row(form.birthDate) }}
@@ -102,6 +103,8 @@
                 </div>
               {% endfor %}
             </div>
+            #}
+            {{ form_row(form.collaborator) }}
             {{ form_row(form.fileType) }}
             {{ form_row(form.file) }}
             {{ form_row(form.save) }}

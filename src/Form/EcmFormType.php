@@ -6,11 +6,10 @@ namespace App\Form;
 
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class EcmFormType extends AbstractType
 {
@@ -23,6 +22,7 @@ class EcmFormType extends AbstractType
     ): void
     {
         $builder
+            /*
             ->add('firstName', TextType::class, [
                 'attr' => [
                     'autofocus' => true
@@ -44,21 +44,15 @@ class EcmFormType extends AbstractType
             ->add('birthDate', DateType::class, [
                 'label' => 'Date de naissance',
             ])
+            */
+            ->add('collaborator', ChoiceType::class, [
+                'label' => 'Collaborateur',
+                'choices' => $options['collaborators'],
+                'expanded' => false,
+                'multiple' => false
+            ])
             ->add('fileType', ChoiceType::class, [
-                'choices' => [
-                    'Dossier de candidature' => 1,
-                    'Contrat de travail' => 2,
-                    'Fiche de salaire' => 3,
-                    'Document personnel' => 4,
-                    'Evaluation' => 5,
-                    'Cahier de charge' => 6,
-                    "Formule personnel d'entrée" => 7,
-                    "Formule de modification personnelle" => 8,
-                    'Certificat médical' => 9,
-                    'Lettre de démission' => 10,
-                    'Remarque interne' => 11,
-                    'Certificat de travail' => 12
-                ],
+                'choices' => $options['document_types'],
                 'expanded' => false,
                 'label' => 'Type de document',
                 'multiple' => false,
@@ -70,5 +64,15 @@ class EcmFormType extends AbstractType
                 'label' => 'Envoyer un fichier à Doc.ECM'
             ])
         ;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function configureOptions(OptionsResolver $resolver): void
+    {
+        $resolver->setRequired(['collaborators', 'document_types']);
+        $resolver->setAllowedTypes('collaborators', 'array');
+        $resolver->setAllowedTypes('document_types', 'array');
     }
 }
