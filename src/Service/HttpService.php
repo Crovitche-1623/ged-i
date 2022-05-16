@@ -29,8 +29,8 @@ class HttpService
                 ->request('POST', 'http://157.26.82.44:2240/token', [
                     'body' => [
                         'grant_type' => 'password',
-                        'username' => 'fanny.roulin',
-                        'password' =>'fanny.roulin'
+                        'username' => 'frontend.frontend',
+                        'password' =>'frontend.frontend'
                     ]
                 ])
                 ->toArray()['access_token'];

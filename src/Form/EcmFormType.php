@@ -13,6 +13,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class EcmFormType extends AbstractType
 {
+    public const COLLABORATOR_FORM_KEY = 'collaborator';
+
     /**
      * {@inheritDoc}
      */
@@ -45,7 +47,7 @@ class EcmFormType extends AbstractType
                 'label' => 'Date de naissance',
             ])
             */
-            ->add('collaborator', ChoiceType::class, [
+            ->add(self::COLLABORATOR_FORM_KEY, ChoiceType::class, [
                 'label' => 'Collaborateur',
                 'choices' => $options['collaborators'],
                 'expanded' => false,

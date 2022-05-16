@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Exception\ContentTypeNotFoundException;
+use App\Exception\FieldCodeNotFoundException;
 use App\Form\EcmFormType;
 use App\Service\HttpService;
 use Exception;
@@ -16,6 +18,9 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 #[Route('/', name: 'app__')]
 class IndexController extends AbstractController
 {
+    public const SEARCHED_CONTENT_TYPE = 'Dossier collaborateur';
+    public const SEARCHED_FIELD = 'Collaborateur';
+
     private HttpClientInterface $httpClient;
 
     public function __construct(HttpService $httpService)
@@ -28,17 +33,9 @@ class IndexController extends AbstractController
         Request $request,
     ): Response
     {
-        $response = $this->httpClient->request('GET', 'content-type/list');
+        $collaboratorFolderId = $this->getCollaboratorFolderContentTypeId();
 
-        $response = $this->httpClient->request(
-            'GET',
-            sprintf(
-                'document/structure/%d',
-                (int) $response->toArray()[0]['id']
-            )
-        );
-
-        $structureData = $response->toArray();
+        $structureData = $this->httpClient->request('GET', "document/structure/$collaboratorFolderId")->toArray();
 
         $form = $this->createForm(EcmFormType::class, null, [
             'collaborators' => $this->getCollaborators($structureData),
@@ -48,7 +45,14 @@ class IndexController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            dd($form->getData(), $token);
+            $formData = $form->getData();
+
+            $this->addDocument(
+                $collaboratorFolderId,
+                $this->getCollaboratorFieldCode($structureData, $collaboratorFolderId),
+                $formData[EcmFormType::COLLABORATOR_FORM_KEY],
+                $formData['fileType']
+            );
         }
 
         return $this->renderForm('base.html.twig', [
@@ -71,7 +75,7 @@ class IndexController extends AbstractController
         foreach ($fields as $field) {
             // La liste est récupérée en vérifiant la clef en dur...
             // Ici, c'est 'Collaborateur' !
-            if ('Collaborateur' === $field['Title']) {
+            if (self::SEARCHED_FIELD === $field['Title']) {
                 foreach ($field['ListElements'] as $collaborator) {
                     if ('' !== $collaborator['Id']) {
                         $collaborators[$collaborator['DisplayValue']] = $collaborator['Id'];
@@ -99,7 +103,7 @@ class IndexController extends AbstractController
             if ('Type de document' === $field['Title']) {
                 foreach ($field['ListElements'] as $documentType) {
                     if ('' !== $documentType['Id']) {
-                        $documentTypes[$documentType['DisplayValue']] = (int) $documentType['Id'];
+                        $documentTypes[$documentType['DisplayValue']] = $documentType['Id'];
                     }
                 }
             }
@@ -108,7 +112,12 @@ class IndexController extends AbstractController
         return $documentTypes;
     }
 
-    private function addDocument(int $contentTypeId)
+    private function addDocument(
+        int $contentTypeId,
+        string $collaboratorFieldCode,
+        string $collaboratorFieldValue,
+        string $fileTypeValue
+    ): void
     {
        $this->httpClient->request('POST', 'document/save', [
            'ContentTypeID' => $contentTypeId,
@@ -117,8 +126,58 @@ class IndexController extends AbstractController
            'IsLastVersion' => false,
            'IsDigitallySigned' => false,
            'Fields' => [
-
+               [
+                   'Code' => $collaboratorFieldCode,
+                   'Value' => $collaboratorFieldValue
+               ],
+               [
+                   'Code' => 'type_de_document',
+                   'Value' => $fileTypeValue,
+               ],
+               [
+                   'Code' => 'etat',
+                   'Value' => 'A traiter'
+               ]
            ]
        ]);
+    }
+
+    private function getCollaboratorFolderContentTypeId(): int
+    {
+        $response = $this->httpClient->request('GET', 'content-type/list');
+
+        $collaboratorFolderId = null;
+        foreach ($response->toArray() as $contentType) {
+            if (self::SEARCHED_CONTENT_TYPE === $contentType['text']) {
+                $collaboratorFolderId = (int) $contentType['id'];
+                break;
+            }
+        }
+
+        if (!$collaboratorFolderId) {
+            throw new ContentTypeNotFoundException();
+        }
+
+        return $collaboratorFolderId;
+    }
+
+    private function getCollaboratorFieldCode(
+        array $structureData,
+        int $collaboratorFolderId
+    ): string
+    {
+        $collaboratorFieldCode = null;
+        foreach ($structureData['Fields'] as $field) {
+            if (self::SEARCHED_FIELD === $field['Title']) {
+                $collaboratorFieldCode = $field['Code'];
+                break;
+            }
+        }
+
+        if (!$collaboratorFieldCode) {
+            throw new FieldCodeNotFoundException($collaboratorFolderId);
+        }
+
+        return $collaboratorFieldCode;
     }
 }
