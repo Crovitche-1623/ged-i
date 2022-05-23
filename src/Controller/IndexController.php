@@ -10,9 +10,13 @@ use App\Form\EcmFormType;
 use App\Service\HttpService;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Mime\Part\Multipart\FormDataPart;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 #[Route('/', name: 'app__')]
@@ -47,12 +51,37 @@ class IndexController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $formData = $form->getData();
 
-            $this->addDocument(
-                $collaboratorFolderId,
-                $this->getCollaboratorFieldCode($structureData, $collaboratorFolderId),
-                $formData[EcmFormType::COLLABORATOR_FORM_KEY],
-                $formData['fileType']
-            );
+            /** @var  UploadedFile|null  $file */
+            $file = $formData['file'];
+
+            if ($file) {
+                $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                $safeFilename = (string) (new AsciiSlugger)->slug($originalFilename);
+                $newFilename = $safeFilename . '-' . uniqid((string) time(), true) . '.' . $file->guessExtension();
+
+                $uploadDirectory = $this->getParameter('uploads_directory');
+                try {
+                    $file->move(
+                        $uploadDirectory,
+                        $newFilename
+                    );
+                } catch (FileException $exception) {
+                    dd($exception);
+                }
+
+                $path = $uploadDirectory . $newFilename;
+
+                $base64 = base64_encode(file_get_contents($path));
+
+                $this->addDocument(
+                    $collaboratorFolderId,
+                    $this->getCollaboratorFieldCode($structureData, $collaboratorFolderId),
+                    $formData[EcmFormType::COLLABORATOR_FORM_KEY],
+                    $formData[EcmFormType::FILE_TYPE_FORM_KEY],
+                    $newFilename,
+                    $base64
+                );
+            }
         }
 
         return $this->renderForm('base.html.twig', [
@@ -116,30 +145,69 @@ class IndexController extends AbstractController
         int $contentTypeId,
         string $collaboratorFieldCode,
         string $collaboratorFieldValue,
-        string $fileTypeValue
+        string $fileTypeValue,
+        string $safeFileName,
+        string $base64EncodedFile,
     ): void
     {
-       $this->httpClient->request('POST', 'document/save', [
-           'ContentTypeID' => $contentTypeId,
-           'ObjectId' => uniqid((string) time(), true),
-           'IpAddress' => Request::createFromGlobals()->getClientIp(),
-           'IsLastVersion' => false,
-           'IsDigitallySigned' => false,
-           'Fields' => [
-               [
-                   'Code' => $collaboratorFieldCode,
-                   'Value' => $collaboratorFieldValue
+       $body = [
+               'ContentTypeID' => $contentTypeId,
+               'ObjectId' => uniqid((string) time(), true),
+               'IpAddress' => gethostbyname(gethostname()),
+               'IsLastVersion' => false,
+               'IsDigitallySigned' => false,
+               'Fields' => [
+                   [
+                       'Code' => $collaboratorFieldCode,
+                       'Value' => $collaboratorFieldValue
+                   ],
+                   [
+                       'Code' => 'type_de_document',
+                       'Value' => $fileTypeValue,
+                   ],
+                   [
+                       'Code' => 'etat',
+                       'Value' => 'A traiter'
+                   ],
+                   [
+                       'Code' => 'isSelected',
+                       'Value' => 0
+                   ],
+                   [
+                       'Code' => 'isMatchingExpectation',
+                       'Value' => 0
+                   ],
+                   [
+                       'Code' => 'isDF',
+                       'Value' => ''
+                   ],
+                   [
+                       'Code' => 'isRH',
+                       'Value' => ''
+                   ],
+                   [
+                       'Code' => 'isDRH',
+                       'Value' => ''
+                   ],
+                   [
+                       'Code' => 'grp4_etat',
+                       'Value' => 'A traiter'
+                   ],
+                   [
+                       'Code' => 'date',
+                       'Value' => (new \DateTimeImmutable())->format('d.m.Y')
+                   ]
                ],
-               [
-                   'Code' => 'type_de_document',
-                   'Value' => $fileTypeValue,
-               ],
-               [
-                   'Code' => 'etat',
-                   'Value' => 'A traiter'
+               'Attachment' => [
+                   'FileName' => $safeFileName,
+                   'Base64File' => $base64EncodedFile
                ]
-           ]
-       ]);
+           ];
+
+       $r = $this->httpClient->request('POST', 'document/save', [
+           'json' => $body,
+       ])->getContent(false);
+       dd($r);
     }
 
     private function getCollaboratorFolderContentTypeId(): int

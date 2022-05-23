@@ -14,6 +14,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 class EcmFormType extends AbstractType
 {
     public const COLLABORATOR_FORM_KEY = 'collaborator';
+    public const FILE_TYPE_FORM_KEY = 'fileType';
 
     /**
      * {@inheritDoc}
@@ -53,7 +54,7 @@ class EcmFormType extends AbstractType
                 'expanded' => false,
                 'multiple' => false
             ])
-            ->add('fileType', ChoiceType::class, [
+            ->add(self::FILE_TYPE_FORM_KEY, ChoiceType::class, [
                 'choices' => $options['document_types'],
                 'expanded' => false,
                 'label' => 'Type de document',
