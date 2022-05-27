@@ -164,11 +164,7 @@ class IndexController extends AbstractController
                    [
                        'Code' => 'type_de_document',
                        'Value' => $fileTypeValue,
-                   ],
-                   [
-                       'Code' => 'etat',
-                       'Value' => 'A traiter'
-                   ],
+                   ],     
                    [
                        'Code' => 'isSelected',
                        'Value' => 0
@@ -191,7 +187,7 @@ class IndexController extends AbstractController
                    ],
                    [
                        'Code' => 'grp4_etat',
-                       'Value' => 'A traiter'
+                       'Value' => 'A traiter (RH)'
                    ],
                    [
                        'Code' => 'date',
