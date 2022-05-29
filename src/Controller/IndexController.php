@@ -73,14 +73,19 @@ class IndexController extends AbstractController
 
                 $base64 = base64_encode(file_get_contents($path));
 
-                $this->addDocument(
+                if ($this->addDocument(
                     $collaboratorFolderId,
                     $this->getCollaboratorFieldCode($structureData, $collaboratorFolderId),
                     $formData[EcmFormType::COLLABORATOR_FORM_KEY],
                     $formData[EcmFormType::FILE_TYPE_FORM_KEY],
                     $newFilename,
-                    $base64
-                );
+                    $base64,
+                    $formData['submitAs']
+                )) {
+                    $this->addFlash('success', 'Le fichier a été envoyé.');
+                } else {
+                    $this->addFlash('danger', "Impossible d'envoyer le fichier");
+                }
             }
         }
 
@@ -148,7 +153,8 @@ class IndexController extends AbstractController
         string $fileTypeValue,
         string $safeFileName,
         string $base64EncodedFile,
-    ): void
+        int $submitAs
+    ): bool
     {
        $body = [
                'ContentTypeID' => $contentTypeId,
@@ -164,7 +170,7 @@ class IndexController extends AbstractController
                    [
                        'Code' => 'type_de_document',
                        'Value' => $fileTypeValue,
-                   ],     
+                   ],
                    [
                        'Code' => 'isSelected',
                        'Value' => 0
@@ -175,15 +181,15 @@ class IndexController extends AbstractController
                    ],
                    [
                        'Code' => 'isDF',
-                       'Value' => ''
+                       'Value' => $submitAs === 1 ? 1 : ''
                    ],
                    [
                        'Code' => 'isRH',
-                       'Value' => ''
+                       'Value' => $submitAs === 0 ? 1 : ''
                    ],
                    [
                        'Code' => 'isDRH',
-                       'Value' => ''
+                       'Value' => $submitAs === 2 ? 1 : ''
                    ],
                    [
                        'Code' => 'grp4_etat',
@@ -200,10 +206,11 @@ class IndexController extends AbstractController
                ]
            ];
 
-       $r = $this->httpClient->request('POST', 'document/save', [
+       $responseStatusCode = $this->httpClient->request('POST', 'document/save', [
            'json' => $body,
-       ])->getContent(false);
-       dd($r);
+       ])->getStatusCode();
+
+        return Response::HTTP_OK === $responseStatusCode;
     }
 
     private function getCollaboratorFolderContentTypeId(): int

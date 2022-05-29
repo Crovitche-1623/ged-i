@@ -60,6 +60,17 @@ class EcmFormType extends AbstractType
                 'label' => 'Type de document',
                 'multiple' => false,
             ])
+            ->add('submitAs', ChoiceType::class, [
+                'label' => 'Fonction',
+                'expanded' => false,
+                'multiple' => false,
+                'choices' => [
+                    'Autre' => 3,
+                    'Ressource humaine' => 0,
+                    'Directeur de filière' => 1,
+                    'Directeur des ressources humaines' => 2,
+                ],
+            ])
             ->add('file', FileType::class, [
                 'label' => 'Fichier'
             ])
